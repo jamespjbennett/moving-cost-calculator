@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moving Cost Calculator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #3b82f6;
+      --accent-light: #dbeafe;
+      --green: #059669;
+      --green-light: #d1fae5;
+      --amber: #b45309;
+      --amber-light: #fef3c7;
+      --red: #dc2626;
+      --red-light: #fee2e2;
+      --radius: 14px;
+      --shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1.25rem 0.875rem 3.5rem;
+      line-height: 1.5;
+    }
+    @media (min-width: 640px) { body { padding: 2rem 1.25rem 4.5rem; } }
+    @media (min-width: 980px) { body { padding: 2.5rem 1rem 5rem; } }
+
+    .container { max-width: 980px; margin: 0 auto; }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+    @media (min-width: 640px) { header { margin-bottom: 2.25rem; } }
+    header h1 {
+      font-size: clamp(1.35rem, 5vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+    header p {
+      color: var(--muted);
+      margin-top: 0.3rem;
+      font-size: 0.8rem;
+    }
+    @media (min-width: 480px) { header p { font-size: 0.875rem; } }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (min-width: 980px) { .layout { gap: 1.5rem; } }
+    @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+    }
+    @media (min-width: 480px) { .card { padding: 1.5rem; } }
+    @media (min-width: 640px) { .card { padding: 1.75rem; } }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* --- Inputs --- */
+    .field { margin-bottom: 1.25rem; }
+    .field:last-child { margin-bottom: 0; }
+
+    .field-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: stretch;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      overflow: hidden;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .input-group:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+    .input-adorn {
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-right: 1.5px solid var(--border);
+      user-select: none;
+    }
+    .input-adorn.right {
+      border-right: none;
+      border-left: 1.5px solid var(--border);
+    }
+    .input-group input[type="number"] {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 0.75rem 0.75rem;
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text);
+      background: transparent;
+      min-width: 0;
+      min-height: 44px;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { opacity: 0.4; }
+
+    .max-btn {
+      font-size: 0.72rem;
+      color: var(--accent);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.2rem 0;
+      min-height: 28px;
+      font-family: inherit;
+      font-weight: 600;
+    }
+    .max-btn:hover { text-decoration: underline; }
+
+    /* Range slider */
+    .range-wrap { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.1rem; }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .term-val {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* --- Capital two-column section --- */
+    .capital-section {
+      margin-bottom: 1.25rem;
+    }
+    .capital-section > .field-label {
+      margin-bottom: 0.6rem;
+    }
+    .capital-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    @media (max-width: 460px) { .capital-cols { grid-template-columns: 1fr; } }
+    .capital-col-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .proceeds-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.5rem;
+      padding: 0.3rem 0.5rem;
+      background: #f8fafc;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .proceeds-row .pval {
+      font-weight: 700;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .minus-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin: 0.35rem 0 0.35rem 0.25rem;
+    }
+    .total-capital-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.85rem;
+      padding: 0.65rem 0.9rem;
+      background: var(--accent-light);
+      border-radius: 9px;
+    }
+    .total-capital-row .tc-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .total-capital-row .tc-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* --- Results --- */
+    .result-section {
+      margin-bottom: 1.25rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-section:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+    .result-section h3 {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 0.7rem;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.3rem 0;
+      font-size: 0.9rem;
+    }
+    .result-row .lbl { color: var(--text); }
+    .result-row .val {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+    .result-row.subtotal {
+      margin-top: 0.4rem;
+      padding-top: 0.55rem;
+      border-top: 1px solid var(--border);
+    }
+    .result-row.subtotal .val { color: var(--accent); }
+
+    /* Monthly payment pill */
+    .monthly-pill {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--accent-light);
+      border-radius: 10px;
+      padding: 0.85rem 1.1rem;
+      margin-top: 0.75rem;
+    }
+    .monthly-pill .mp-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .monthly-pill .mp-value {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* LTV badge */
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+    }
+    .badge.good { background: var(--green-light); color: var(--green); }
+    .badge.ok   { background: var(--amber-light); color: var(--amber); }
+    .badge.high { background: var(--red-light);   color: var(--red);   }
+
+    /* Big leftover card */
+    .leftover-card {
+      border-radius: 12px;
+      padding: 1.3rem 1.2rem 1.1rem;
+      text-align: center;
+      margin-top: 0.85rem;
+      transition: background .2s, color .2s;
+    }
+    .leftover-card .lc-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      opacity: 0.75;
+      margin-bottom: 0.3rem;
+    }
+    .leftover-card .lc-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .leftover-card .lc-sub {
+      font-size: 0.78rem;
+      margin-top: 0.3rem;
+      opacity: 0.7;
+    }
+    .leftover-card.positive { background: var(--green-light); color: var(--green); }
+    .leftover-card.warning  { background: var(--amber-light); color: var(--amber); }
+    .leftover-card.negative { background: var(--red-light);   color: var(--red);   }
+
+    /* Alerts */
+    #warnings { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .alert {
+      border-radius: 8px;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+    .alert.warn  { background: var(--amber-light); color: var(--amber); }
+    .alert.error { background: var(--red-light);   color: var(--red);   }
+
+    /* --- Expenses card --- */
+    .expenses-card {
+      margin-top: 1.25rem;
+    }
+    @media (min-width: 640px) { .expenses-card { margin-top: 1.5rem; } }
+    .expenses-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .expenses-card-header h2 { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+    .add-expense-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-light);
+      border: none;
+      border-radius: 7px;
+      padding: 0.45rem 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity .15s;
+    }
+    .add-expense-btn:hover { opacity: 0.8; }
+
+    .expenses-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .expenses-empty {
+      font-size: 0.85rem;
+      color: var(--muted);
+      padding: 0.75rem 0;
+    }
+    .expense-row {
+      display: grid;
+      grid-template-columns: 1fr 160px 36px;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    @media (max-width: 600px) {
+      .expense-row { grid-template-columns: 1fr 130px 36px; }
+    }
+    @media (max-width: 400px) {
+      .expense-row { grid-template-columns: 1fr 110px 36px; }
+    }
+    .expense-name-input {
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      padding: 0.75rem 0.75rem;
+      min-height: 44px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      width: 100%;
+    }
+    .expense-name-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+    .expense-name-input::placeholder { color: #b0bec5; }
+    .expense-remove-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: none;
+      color: var(--muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, color .15s, border-color .15s;
+      flex-shrink: 0;
+    }
+    .expense-remove-btn:hover { background: var(--red-light); color: var(--red); border-color: var(--red); }
+
+    .expenses-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+    .expenses-footer .ef-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .expenses-footer .ef-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    @media (min-width: 640px) { footer { margin-top: 2rem; font-size: 0.78rem; } }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Moving Cost Calculator</h1>
+      <p>England / Northern Ireland · SDLT from April 2025 · Main residence (not first-time buyer)</p>
+    </header>
+
+    <div class="layout">
+      <!-- Inputs -->
+      <div class="card">
+        <h2>Your Numbers</h2>
+
+        <div class="field">
+          <div class="field-label">House Price</div>
+          <div class="input-group">
+            <span class="input-adorn">£</span>
+            <input type="number" id="housePrice" value="400000" min="0" step="1000">
+          </div>
+        </div>
+
+        <div class="capital-section">
+          <div class="field-label">Your Available Capital</div>
+          <div class="capital-cols">
+            <!-- Cash savings -->
+            <div>
+              <div class="capital-col-label">Cash Savings</div>
+              <div class="input-group">
+                <span class="input-adorn">£</span>
+                <input type="number" id="savings" value="50000" min="0" step="1000">
+              </div>
+            </div>
+            <!-- House sale proceeds -->
+            <div>
+              <div class="capital-col-label">Current House</div>
+              <div class="input-group">
+                <span class="input-adorn">£</span>
+                <input type="number" id="saleValue" value="300000" min="0" step="1000" placeholder="Sale value">
+              </div>
+              <div class="minus-label">− mortgage owed</div>
+              <div class="input-group">
+                <span class="input-adorn">£</span>
+                <input type="number" id="mortgageOwed" value="200000" min="0" step="1000" placeholder="Outstanding mortgage">
+              </div>
+              <div class="minus-label">− estate agent fee (1%)</div>
+              <div class="proceeds-row" style="margin-top:0">
+                <span style="font-style:italic" id="r-agent-fee-label">—</span>
+                <span class="pval" id="r-agent-fee" style="color:var(--red)">—</span>
+              </div>
+              <div class="proceeds-row">
+                <span>Proceeds</span>
+                <span class="pval" id="r-proceeds">—</span>
+              </div>
+            </div>
+          </div>
+          <div class="total-capital-row">
+            <span class="tc-label">Total Available</span>
+            <span class="tc-value" id="r-total-capital">£150,000</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            Deposit
+            <button class="max-btn" id="maxDepositBtn">use max available →</button>
+          </div>
+          <div class="input-group">
+            <span class="input-adorn">£</span>
+            <input type="number" id="deposit" value="80000" min="0" step="1000">
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Annual Mortgage Rate</div>
+          <div class="input-group">
+            <input type="number" id="rate" value="4.5" min="0" max="20" step="0.05">
+            <span class="input-adorn right">%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            Mortgage Term
+            <span class="term-val" id="termDisplay">25 years</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="term" min="5" max="40" value="25" step="1">
+            <div class="range-labels"><span>5 yrs</span><span>40 yrs</span></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Monthly Take-Home Income</div>
+          <div class="input-group">
+            <span class="input-adorn">£</span>
+            <input type="number" id="income" value="4000" min="0" step="100">
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="card">
+        <h2>Results</h2>
+
+        <div class="result-section">
+          <h3>Upfront Costs</h3>
+          <div class="result-row">
+            <span class="lbl">Deposit</span>
+            <span class="val" id="r-deposit">—</span>
+          </div>
+          <div class="result-row">
+            <span class="lbl">Stamp Duty (SDLT)</span>
+            <span class="val" id="r-sdlt">—</span>
+          </div>
+          <div class="result-row">
+            <span class="lbl">Est. Legal Costs *</span>
+            <span class="val" id="r-legal">—</span>
+          </div>
+          <div class="result-row" id="r-agent-fee-row" style="display:none">
+            <span class="lbl">Estate Agent Fee (1%)</span>
+            <span class="val" id="r-agent-fee-result">—</span>
+          </div>
+          <div class="result-row subtotal">
+            <span class="lbl" style="font-weight:700">Total Upfront</span>
+            <span class="val" id="r-upfront-total">—</span>
+          </div>
+        </div>
+
+        <div class="result-section">
+          <h3>Mortgage</h3>
+          <div class="result-row">
+            <span class="lbl">Amount borrowed</span>
+            <span class="val" id="r-mortgage">—</span>
+          </div>
+          <div class="result-row">
+            <span class="lbl">Loan to Value</span>
+            <span class="val" id="r-ltv">—</span>
+          </div>
+          <div class="monthly-pill">
+            <span class="mp-label">Monthly Repayment</span>
+            <span class="mp-value" id="r-monthly">—</span>
+          </div>
+        </div>
+
+        <div class="result-section">
+          <h3>Monthly Position</h3>
+          <div class="result-row">
+            <span class="lbl">Take-home income</span>
+            <span class="val" id="r-income">—</span>
+          </div>
+          <div class="result-row">
+            <span class="lbl">Less mortgage repayment</span>
+            <span class="val" id="r-monthly-neg" style="color:var(--red)">—</span>
+          </div>
+          <div class="result-row">
+            <span class="lbl">Less monthly expenses</span>
+            <span class="val" id="r-expenses-neg" style="color:var(--red)">—</span>
+          </div>
+          <div class="leftover-card" id="surplus-card">
+            <div class="lc-label">Monthly Surplus</div>
+            <div class="lc-value" id="r-surplus">—</div>
+            <div class="lc-sub" id="r-surplus-sub"></div>
+          </div>
+        </div>
+
+        <div class="result-section">
+          <h3>Capital After Purchase</h3>
+          <div class="result-row">
+            <span class="lbl">Your capital</span>
+            <span class="val" id="r-capital-display">—</span>
+          </div>
+          <div class="result-row">
+            <span class="lbl">Less total upfront costs</span>
+            <span class="val" id="r-costs-neg" style="color:var(--red)">—</span>
+          </div>
+          <div class="leftover-card" id="leftover-card">
+            <div class="lc-label">Money Left Over</div>
+            <div class="lc-value" id="r-leftover">—</div>
+            <div class="lc-sub" id="r-leftover-sub"></div>
+          </div>
+        </div>
+
+        <div id="warnings"></div>
+      </div>
+    </div>
+
+    <!-- Expenses card -->
+    <div class="card expenses-card">
+      <div class="expenses-card-header">
+        <h2>Monthly Expenses</h2>
+        <button class="add-expense-btn" id="addExpenseBtn">+ Add expense</button>
+      </div>
+      <div class="expenses-list" id="expensesList">
+        <p class="expenses-empty">No expenses added yet — click "Add expense" to start.</p>
+      </div>
+      <div class="expenses-footer">
+        <span class="ef-label">Total monthly expenses</span>
+        <span class="ef-value" id="r-expenses-total">£0</span>
+      </div>
+    </div>
+
+    <footer>
+      * Legal cost estimate includes conveyancer, searches, land registry & misc. Actual costs vary.<br>
+      SDLT bands: 0% (≤£125k) · 2% (£125k–£250k) · 5% (£250k–£925k) · 10% (£925k–£1.5m) · 12% (above £1.5m) · Not financial advice.
+    </footer>
+  </div>
+
+  <script>
+    const fmt = n => '£' + Math.round(n).toLocaleString('en-GB');
+
+    function calcSDLT(price) {
+      if (price <= 0) return 0;
+      const bands = [
+        { limit: 125000,   rate: 0.00 },
+        { limit: 250000,   rate: 0.02 },
+        { limit: 925000,   rate: 0.05 },
+        { limit: 1500000,  rate: 0.10 },
+        { limit: Infinity, rate: 0.12 },
+      ];
+      let tax = 0, prev = 0;
+      for (const { limit, rate } of bands) {
+        if (price <= prev) break;
+        tax += (Math.min(price, limit) - prev) * rate;
+        prev = limit;
+      }
+      return tax;
+    }
+
+    function calcLegal(price) {
+      const est = 1500 + price * 0.001;
+      return Math.max(1800, Math.min(est, 4000));
+    }
+
+    function calcMonthly(principal, annualRatePct, years) {
+      if (principal <= 0) return 0;
+      const r = annualRatePct / 100 / 12;
+      const n = years * 12;
+      if (r === 0) return principal / n;
+      return principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    }
+
+    function totalCapital() {
+      const savings      = +document.getElementById('savings').value      || 0;
+      const saleValue    = +document.getElementById('saleValue').value    || 0;
+      const mortgageOwed = +document.getElementById('mortgageOwed').value || 0;
+      const agentFee     = saleValue * 0.01;
+      const proceeds     = Math.max(0, saleValue - mortgageOwed);
+      return { savings, proceeds, agentFee, saleValue, total: savings + proceeds };
+    }
+
+    function maxAvailableDeposit() {
+      const housePrice = +document.getElementById('housePrice').value || 0;
+      const capital    = totalCapital().total;
+      const sdlt  = calcSDLT(housePrice);
+      const legal = calcLegal(housePrice);
+      return Math.min(Math.max(0, capital - sdlt - legal), housePrice);
+    }
+
+    function calculate() {
+      const housePrice = +document.getElementById('housePrice').value || 0;
+      const capData    = totalCapital();
+      const capital    = capData.total;
+      const deposit    = +document.getElementById('deposit').value    || 0;
+      const rate       = +document.getElementById('rate').value       || 0;
+      const term       = +document.getElementById('term').value       || 25;
+      const income     = +document.getElementById('income').value     || 0;
+
+      const sdlt         = calcSDLT(housePrice);
+      const legal        = calcLegal(housePrice);
+      const agentFee     = capData.agentFee;
+      const totalUpfront = deposit + sdlt + legal + agentFee;
+      const mortgage     = Math.max(0, housePrice - deposit);
+      const ltv          = housePrice > 0 ? (mortgage / housePrice) * 100 : 0;
+      const monthly      = calcMonthly(mortgage, rate, term);
+      const leftover     = capital - totalUpfront;
+      const totalExp     = expensesTotal();
+      const surplus      = income - monthly - totalExp;
+
+      // Capital breakdown (input card)
+      document.getElementById('r-agent-fee-label').textContent = capData.saleValue > 0 ? '1% of ' + fmt(capData.saleValue) : '—';
+      document.getElementById('r-agent-fee').textContent        = capData.saleValue > 0 ? fmt(agentFee) : '—';
+      document.getElementById('r-proceeds').textContent         = fmt(capData.proceeds);
+      document.getElementById('r-total-capital').textContent    = fmt(capital);
+
+      // Upfront costs (results card) — show agent fee row only when selling
+      const agentFeeRow = document.getElementById('r-agent-fee-row');
+      agentFeeRow.style.display = capData.saleValue > 0 ? '' : 'none';
+      document.getElementById('r-agent-fee-result').textContent = fmt(agentFee);
+
+      document.getElementById('r-deposit').textContent       = fmt(deposit);
+      document.getElementById('r-sdlt').textContent          = fmt(sdlt);
+      document.getElementById('r-legal').textContent         = fmt(legal);
+      document.getElementById('r-upfront-total').textContent = fmt(totalUpfront);
+      document.getElementById('r-mortgage').textContent      = fmt(mortgage);
+      document.getElementById('r-monthly').textContent       = fmt(monthly) + '/mo';
+      document.getElementById('r-income').textContent        = fmt(income) + '/mo';
+      document.getElementById('r-monthly-neg').textContent   = '− ' + fmt(monthly) + '/mo';
+      document.getElementById('r-expenses-neg').textContent  = totalExp > 0 ? '− ' + fmt(totalExp) + '/mo' : '—';
+      document.getElementById('r-surplus').textContent       = fmt(surplus) + '/mo';
+      document.getElementById('r-expenses-total').textContent = fmt(totalExp) + '/mo';
+
+      const surplusCard = document.getElementById('surplus-card');
+      const surplusSub  = document.getElementById('r-surplus-sub');
+      surplusCard.className = 'leftover-card ' + (
+        surplus < 0      ? 'negative' :
+        surplus < 500    ? 'warning'  : 'positive'
+      );
+      surplusSub.textContent =
+        surplus < 0     ? 'Mortgage exceeds income — this isn\'t affordable' :
+        surplus < 500   ? 'Very little breathing room each month' :
+                          'After mortgage, before other expenses';
+
+      document.getElementById('r-capital-display').textContent = fmt(capital);
+      document.getElementById('r-costs-neg').textContent     = '− ' + fmt(totalUpfront);
+      document.getElementById('r-leftover').textContent      = fmt(leftover);
+
+      // LTV badge
+      const ltvClass = ltv <= 75 ? 'good' : ltv <= 90 ? 'ok' : 'high';
+      document.getElementById('r-ltv').innerHTML =
+        `<span class="badge ${ltvClass}">${ltv.toFixed(1)}% LTV</span>`;
+
+      // Leftover card colour
+      const card = document.getElementById('leftover-card');
+      const sub  = document.getElementById('r-leftover-sub');
+      card.className = 'leftover-card ' + (
+        leftover < 0       ? 'negative' :
+        leftover < 10000   ? 'warning'  : 'positive'
+      );
+      sub.textContent =
+        leftover < 0      ? 'Capital shortfall — reduce deposit or find a cheaper property' :
+        leftover < 10000  ? 'Very tight buffer — consider whether this feels comfortable' :
+                            'Remaining after deposit, stamp duty & legal fees';
+
+      // Warnings
+      const warns = [];
+      if (deposit > capital) {
+        warns.push({ type: 'error', msg: 'Deposit exceeds your total capital.' });
+      } else if (totalUpfront > capital) {
+        warns.push({ type: 'error', msg: `You're ${fmt(totalUpfront - capital)} short — either reduce your deposit or your budget.` });
+      }
+      if (housePrice > 0 && deposit < housePrice * 0.05) {
+        warns.push({ type: 'error', msg: 'Deposit is below 5% — most lenders won\'t offer a mortgage at this LTV.' });
+      } else if (housePrice > 0 && deposit < housePrice * 0.1) {
+        warns.push({ type: 'warn', msg: 'Deposit below 10% — fewer products available and rates will be higher.' });
+      }
+
+      const wEl = document.getElementById('warnings');
+      wEl.innerHTML = warns.map(w =>
+        `<div class="alert ${w.type}">${w.msg}</div>`
+      ).join('');
+    }
+
+    // --- Persistence ---
+    const INPUTS_KEY    = 'moving-calc-v1';
+    const EXPENSES_KEY  = 'moving-calc-expenses-v1';
+    const INPUTS = ['housePrice', 'savings', 'saleValue', 'mortgageOwed', 'deposit', 'rate', 'term', 'income'];
+
+    function saveInputs() {
+      const data = {};
+      INPUTS.forEach(id => data[id] = document.getElementById(id).value);
+      localStorage.setItem(INPUTS_KEY, JSON.stringify(data));
+    }
+
+    function loadInputs() {
+      try {
+        const data = JSON.parse(localStorage.getItem(INPUTS_KEY));
+        if (!data) return;
+        INPUTS.forEach(id => {
+          if (data[id] !== undefined) document.getElementById(id).value = data[id];
+        });
+        document.getElementById('termDisplay').textContent = (data.term || 25) + ' years';
+      } catch (e) {}
+    }
+
+    // --- Expenses state ---
+    let expenses = [];
+    let nextExpenseId = 1;
+
+    function expensesTotal() {
+      return expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+    }
+
+    function saveExpenses() {
+      localStorage.setItem(EXPENSES_KEY, JSON.stringify({ expenses, nextExpenseId }));
+    }
+
+    function loadExpenses() {
+      try {
+        const data = JSON.parse(localStorage.getItem(EXPENSES_KEY));
+        if (!data) return;
+        expenses = data.expenses || [];
+        nextExpenseId = data.nextExpenseId || 1;
+      } catch (e) {}
+    }
+
+    function renderExpenses() {
+      const list = document.getElementById('expensesList');
+      if (expenses.length === 0) {
+        list.innerHTML = '<p class="expenses-empty">No expenses added yet — click "Add expense" to start.</p>';
+      } else {
+        list.innerHTML = expenses.map(e => `
+          <div class="expense-row">
+            <input
+              type="text"
+              class="expense-name-input"
+              placeholder="e.g. Food shopping"
+              value="${e.name.replace(/"/g, '&quot;')}"
+              data-id="${e.id}"
+            >
+            <div class="input-group">
+              <span class="input-adorn">£</span>
+              <input
+                type="number"
+                class="expense-amount-input"
+                min="0"
+                step="10"
+                value="${e.amount || ''}"
+                placeholder="0"
+                data-id="${e.id}"
+              >
+            </div>
+            <button class="expense-remove-btn" data-id="${e.id}" aria-label="Remove">×</button>
+          </div>
+        `).join('');
+
+        list.querySelectorAll('.expense-name-input').forEach(input =>
+          input.addEventListener('input', ev => {
+            const exp = expenses.find(x => x.id === +ev.target.dataset.id);
+            if (exp) { exp.name = ev.target.value; saveExpenses(); calculate(); }
+          })
+        );
+        list.querySelectorAll('.expense-amount-input').forEach(input =>
+          input.addEventListener('input', ev => {
+            const exp = expenses.find(x => x.id === +ev.target.dataset.id);
+            if (exp) { exp.amount = parseFloat(ev.target.value) || 0; saveExpenses(); calculate(); }
+          })
+        );
+        list.querySelectorAll('.expense-remove-btn').forEach(btn =>
+          btn.addEventListener('click', ev => {
+            expenses = expenses.filter(x => x.id !== +ev.target.dataset.id);
+            saveExpenses();
+            renderExpenses();
+            calculate();
+          })
+        );
+      }
+
+      document.getElementById('r-expenses-total').textContent = fmt(expensesTotal()) + '/mo';
+    }
+
+    document.getElementById('addExpenseBtn').addEventListener('click', () => {
+      expenses.push({ id: nextExpenseId++, name: '', amount: 0 });
+      saveExpenses();
+      renderExpenses();
+      const nameInputs = document.querySelectorAll('.expense-name-input');
+      if (nameInputs.length) nameInputs[nameInputs.length - 1].focus();
+    });
+
+    // --- Wire inputs ---
+    INPUTS.forEach(id =>
+      document.getElementById(id).addEventListener('input', () => { saveInputs(); calculate(); })
+    );
+    document.getElementById('term').addEventListener('input', function () {
+      document.getElementById('termDisplay').textContent = this.value + ' years';
+    });
+    document.getElementById('maxDepositBtn').addEventListener('click', () => {
+      document.getElementById('deposit').value = Math.round(maxAvailableDeposit());
+      saveInputs();
+      calculate();
+    });
+
+    loadInputs();
+    loadExpenses();
+    renderExpenses();
+    calculate();
+  </script>
+</body>
+</html>
